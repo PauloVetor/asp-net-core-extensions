@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
 using Microsoft.EntityFrameworkCore.Storage;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -273,12 +274,18 @@ namespace EFCoreBulk
                 var entityType = context.Model.GetEntityTypes().FirstOrDefault(x => x.ClrType == typeof(T));
                 var schema = entityType.GetSchema();
                 var tableName = entityType.GetTableName();
+                var columnNames = entityType.GetProperties()
+                    .Select(prop => new
+                    {
+                        prop.Name,
+                        Alias = prop.PropertyInfo.GetCustomAttribute<ColumnAttribute>().Name
+                    });
 
                 var sql = $"INSERT INTO {tableName} (";
 
                 sql += string.Join(", ",
                     queryInfo.Sql.Projection.OfType<ProjectionExpression>()
-                    .Select(x => x.Alias));
+                    .Select(x => columnNames.FirstOrDefault(col => col.Name == x.Alias).Alias));
 
                 sql += $")  ({queryInfo.Command})";
 
